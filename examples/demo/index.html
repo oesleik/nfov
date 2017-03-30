@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Demo</title>
+    <style>
+      * {
+        padding: 0;
+        margin: 0;
+      }
+
+      canvas {
+        background: #eee;
+        display: block;
+        margin: 0 auto;
+      }
+
+      .controls {
+        width: 465px;
+        margin: 20px auto;
+      }
+
+      .control {
+        display: inline-block;
+        min-width: 225px;
+        margin-bottom: 10px;
+      }
+
+      .control-key {
+        display: inline-block;
+        padding: 3px 10px;
+        margin-right: 5px;
+        background-color: #ddd;
+        border-radius: 3px;
+      }
+
+      .control-action {
+        display: inline-block;
+      }
+
+      .overlay {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 480px;
+        height: 320px;
+        margin-left: -240px;
+        background-color: rgba(0, 0, 0, 0.2);
+        text-align: center;
+      }
+
+      .overlay.active {
+        display: block;
+      }
+
+      .spacer100 {
+        margin-top: 100px;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="gameCanvas" width="480" height="320"></canvas>
+
+    <div class="overlay active" id="startGame">
+      <div class="spacer100"></div>
+      <div class="control-action">Pressione <div class="control-key">ENTER</div> para iniciar o jogo</div>
+    </div>
+
+    <div class="overlay" id="gamePaused">
+      <div class="spacer100"></div>
+      Jogo pausado!
+    </div>
+
+    <div class="controls">
+      <div class="control">
+        <div class="control-key">P</div>
+        <div class="control-action">Pausar / Continuar</div>
+      </div>
+      <div class="control">
+        <div class="control-key">R</div>
+        <div class="control-action">Reiniciar</div>
+      </div>
+    </div>
+
+    <script>
+      let canvas = document.getElementById('gameCanvas')
+      let ctx = canvas.getContext('2d')
+      let lastUpdate = 0
+
+      let state = {
+        started: false,
+        paused: false
+      }
+
+      let Key = {
+        LEFT: 37,
+        UP: 38,
+        RIGHT: 39,
+        DOWN: 40,
+        ENTER: 13,
+        P: 80,
+        R: 82,
+
+        pressed: {},
+        isDown: function isDown (keyCode) {
+          return !!this.pressed[keyCode]
+        }
+      }
+
+      let ball = {
+        radius: 10,
+        position: { x: 200, y: 80 },
+        speed: { x: 250, y: 250 }
+      }
+
+      function tick (timestamp) {
+        if (lastUpdate) {
+          update((timestamp - lastUpdate) / 1000)
+          render()
+        }
+
+        lastUpdate = timestamp
+        window.requestAnimationFrame(tick)
+      }
+
+      function update (elapsed) {
+        if (state.started) {
+          if (Key.isDown(Key.R)) {
+            window.location.reload()
+          }
+
+          if (Key.isDown(Key.P)) {
+            state.paused = !state.paused
+            document.getElementById('gamePaused').classList.toggle('active', state.paused)
+            Key.pressed[Key.P] = false
+          }
+        } else if (Key.isDown(Key.ENTER)) {
+          state.started = true
+          document.getElementById('startGame').classList.remove('active')
+        }
+
+        if (!state.started || state.paused) {
+          return
+        }
+
+        ball.position.x += ball.speed.x * elapsed
+        if (ball.position.x + ball.radius > canvas.width || ball.position.x - ball.radius < 0) {
+          ball.speed.x *= -1
+        }
+
+        ball.position.y += ball.speed.y * elapsed
+        if (ball.position.y + ball.radius > canvas.height || ball.position.y - ball.radius < 0) {
+          ball.speed.y *= -1
+        }
+      }
+
+      function render () {
+        if (!state.started || state.paused) {
+          return
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+        ctx.beginPath()
+        ctx.arc(ball.position.x, ball.position.y, ball.radius, 0, Math.PI * 2)
+        ctx.fillStyle = '#0095DD'
+        ctx.fill()
+        ctx.closePath()
+      }
+
+      window.addEventListener('keydown', function (event) {
+        Key.pressed[event.keyCode] = true
+      }, false)
+
+      window.addEventListener('keyup', function (event) {
+        Key.pressed[event.keyCode] = false
+      }, false)
+
+      window.requestAnimationFrame(tick)
+    </script>
+  </body>
+</html>
