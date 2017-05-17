@@ -21,24 +21,44 @@
     'XXXXXXXXXXXXXXXXXXXXXXXXX'
   ]
 
-  const game = new Phaser.Game(level[0].length * 32, level.length * 32)
-  game.state.add('main', mainState(game, level))
-  game.state.start('main')
+  const config = {
+    player: {
+      speed: 300
+    },
+    enemy: {
+      speed: 100,
+      chance: {
+        spawn: 1,
+        move: 30
+      }
+    }
+  }
 
-  function mainState (game, level) {
+  function mainState (game, level, config) {
     let cursors, player, walls, enemies
 
-    const config = {
-      player: {
-        speed: 300
-      },
-      enemy: {
-        speed: 100,
-        chance: {
-          spawn: 1,
-          move: 30
+    function createEnemy (game, x, y, config) {
+      let enemy = game.add.sprite(x, y, 'enemy')
+      enemy.body.immovable = !Phaser.Utils.chanceRoll(config.chance.move)
+      enemy.anchor.setTo(0.5, 0.5)
+
+      if (!enemy.body.immovable) {
+        if (Phaser.Utils.chanceRoll(50)) {
+          enemy.body.velocity.x = config.speed
+          enemy.angle = 0
+        } else {
+          enemy.body.velocity.y = config.speed * -1
+          enemy.angle = 90
+        }
+
+        if (Phaser.Utils.chanceRoll(50)) {
+          enemy.body.velocity.x *= -1
+          enemy.body.velocity.y *= -1
+          enemy.angle = enemy.angle === 0 ? 180 : 270
         }
       }
+
+      return enemy
     }
 
     return {
@@ -125,29 +145,9 @@
         })
       }
     }
-
-    function createEnemy (game, x, y, config) {
-      let enemy = game.add.sprite(x, y, 'enemy')
-      enemy.body.immovable = !Phaser.Utils.chanceRoll(config.chance.move)
-      enemy.anchor.setTo(0.5, 0.5)
-
-      if (!enemy.body.immovable) {
-        if (Phaser.Utils.chanceRoll(50)) {
-          enemy.body.velocity.x = config.speed
-          enemy.angle = 0
-        } else {
-          enemy.body.velocity.y = config.speed * -1
-          enemy.angle = 90
-        }
-
-        if (Phaser.Utils.chanceRoll(50)) {
-          enemy.body.velocity.x *= -1
-          enemy.body.velocity.y *= -1
-          enemy.angle = enemy.angle === 0 ? 180 : 270
-        }
-      }
-
-      return enemy
-    }
   }
+
+  const game = new Phaser.Game(level[0].length * 32, level.length * 32)
+  game.state.add('main', mainState(game, level, config))
+  game.state.start('main')
 }(window.Phaser))
