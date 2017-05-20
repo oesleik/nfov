@@ -111,6 +111,56 @@
     })
   }
 
+  function play () {
+    player.vx = player.vy = 0
+
+    if (Key.isDown(Key.LEFT)) {
+      player.vx -= config.player.speed
+      player.rotation = deg2Rad(180)
+    } else if (Key.isDown(Key.RIGHT)) {
+      player.vx += config.player.speed
+      player.rotation = 0
+    } else if (Key.isDown(Key.UP)) {
+      player.vy -= config.player.speed
+      player.rotation = deg2Rad(270)
+    } else if (Key.isDown(Key.DOWN)) {
+      player.vy += config.player.speed
+      player.rotation = deg2Rad(90)
+    }
+
+    player.x += player.vx
+    player.y += player.vy
+
+    enemies.children.forEach(function (enemy) {
+      enemy.x += enemy.vx
+      enemy.y += enemy.vy
+    })
+
+    checkCollision(player, walls)
+
+    checkCollision(enemies, walls, function (enemy) {
+      if (enemy.rotation === 0) {
+        enemy.vx = config.enemy.speed * -1
+        enemy.rotation = deg2Rad(180)
+      } else if (enemy.rotation === deg2Rad(180)) {
+        enemy.vx = config.enemy.speed
+        enemy.rotation = 0
+      } else if (enemy.rotation === deg2Rad(270)) {
+        enemy.vy = config.enemy.speed * -1
+        enemy.rotation = deg2Rad(90)
+      } else if (enemy.rotation === deg2Rad(90)) {
+        enemy.vy = config.enemy.speed
+        enemy.rotation = deg2Rad(270)
+      }
+    })
+  }
+
+  function gameLoop () {
+    state()
+    renderer.render(stage)
+    requestAnimationFrame(gameLoop)
+  }
+
   function setup () {
     stage = new PIXI.Container()
 
@@ -158,56 +208,6 @@
 
     state = play
     gameLoop()
-  }
-
-  function gameLoop () {
-    state()
-    renderer.render(stage)
-    requestAnimationFrame(gameLoop)
-  }
-
-  function play () {
-    player.vx = player.vy = 0
-
-    if (Key.isDown(Key.LEFT)) {
-      player.vx -= config.player.speed
-      player.rotation = deg2Rad(180)
-    } else if (Key.isDown(Key.RIGHT)) {
-      player.vx += config.player.speed
-      player.rotation = 0
-    } else if (Key.isDown(Key.UP)) {
-      player.vy -= config.player.speed
-      player.rotation = deg2Rad(270)
-    } else if (Key.isDown(Key.DOWN)) {
-      player.vy += config.player.speed
-      player.rotation = deg2Rad(90)
-    }
-
-    player.x += player.vx
-    player.y += player.vy
-
-    enemies.children.forEach(function (enemy) {
-      enemy.x += enemy.vx
-      enemy.y += enemy.vy
-    })
-
-    checkCollision(player, walls)
-
-    checkCollision(enemies, walls, function (enemy) {
-      if (enemy.rotation === 0) {
-        enemy.vx = config.enemy.speed * -1
-        enemy.rotation = deg2Rad(180)
-      } else if (enemy.rotation === deg2Rad(180)) {
-        enemy.vx = config.enemy.speed
-        enemy.rotation = 0
-      } else if (enemy.rotation === deg2Rad(270)) {
-        enemy.vy = config.enemy.speed * -1
-        enemy.rotation = deg2Rad(90)
-      } else if (enemy.rotation === deg2Rad(90)) {
-        enemy.vy = config.enemy.speed
-        enemy.rotation = deg2Rad(270)
-      }
-    })
   }
 
   window.onload = function () {
