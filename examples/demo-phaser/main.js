@@ -101,6 +101,7 @@
                 break
               case 'O':
                 enemies.add(createEnemy(game, (j * 32) + 16, (i * 32) + 16, config.enemy))
+                break
             }
           })
         })
