@@ -1,42 +1,75 @@
-function nfov () {
+const basicHandler = require('./handlers/basic')
+
+const defaultSettings = {
+  distance: 0,
+  angle: 0,
+  map: null,
+  handler: basicHandler
+}
+
+function nfov (config) {
   if (!(this instanceof nfov)) {
-    throw new Error('Constructor called as a function. Try use the syntax `new nfov()`.')
+    throw new Error('Constructor called as a function')
   }
 
-  this._map = null
-  this._agents = []
-  this._targets = []
+  config = Object.assign({}, defaultSettings, config)
+  this.setDistance(config.distance)
+  this.setAngle(config.angle)
+  this.setMap(config.map)
+  this.setHandler(config.handler)
 }
 
-nfov.prototype.defaults = {
-  agent: {
-    // agent identifier
-    id: null,
-    // agent field of view distance
-    distance: 0,
-    // agent field of view angle (degrees)
-    angle: 360,
-    // direction the agent is facing off (degrees).
-    // Zero degrees points to the right side of the x axis
-    direction: 0,
-    // agent initial field of view plan
-    viewPlane: 3,
-    // agent position
-    position: { x: 0, y: 0 }
-  },
-  target: {
-    // target identifier
-    id: null,
-    // target position
-    position: { x: 0, y: 0 },
-    // agent bounds
-    bounds: { x: 0, y: 0 }
+nfov.prototype.setDistance = function setDistance (distance) {
+  if (typeof distance === 'number' && distance >= 0) {
+    this.distance = distance
+  } else {
+    throw new Error('Invalid value passed for `distance`')
   }
 }
 
-Object.assign(nfov.prototype, require('./config/agent'))
-Object.assign(nfov.prototype, require('./config/target'))
-Object.assign(nfov.prototype, require('./config/map'))
-Object.assign(nfov.prototype, require('./tick'))
+nfov.prototype.getDistance = function getDistance () {
+  return this.distance
+}
+
+nfov.prototype.setAngle = function setAngle (angle) {
+  if (typeof angle === 'number' && angle >= 0) {
+    this.angle = angle
+  } else {
+    throw new Error('Invalid value passed for `angle`')
+  }
+}
+
+nfov.prototype.getAngle = function getAngle () {
+  return this.angle
+}
+
+nfov.prototype.setMap = function setMap (map) {
+  if (typeof map === 'undefined') {
+    throw new Error('Invalid value passed for `map`')
+  } else {
+    this.map = map
+  }
+}
+
+nfov.prototype.getMap = function getMap () {
+  return this.map
+}
+
+nfov.prototype.setHandler = function setHandler (handler) {
+  if (typeof handler === 'function') {
+    this.handler = handler
+  } else {
+    throw new Error('Invalid value passed for `handler`')
+  }
+}
+
+nfov.prototype.getHandler = function getHandler () {
+  return this.handler
+}
+
+nfov.prototype.detect = function detect (agents, targets, callback) {
+  const handler = this.getHandler()
+  handler(this, agents, targets, callback)
+}
 
 module.exports = nfov
