@@ -1,5 +1,5 @@
-(function (requestAnimationFrame, Key, Image) {
-  let canvas, ctx, lastUpdate, sprites, player, walls, enemies
+(function (requestAnimationFrame, Key, Image, NFOV) {
+  let canvas, ctx, lastUpdate, frameCount, assets, sprites, player, walls, enemies, nfov
 
   const level = [
     'XXXXXXXXXXXXXXXXXXXXXXXXX',
@@ -42,14 +42,15 @@
     return asset
   }
 
-  function createSprite (x, y, width, height, image) {
+  function createSprite (x, y, width, height, image, name) {
     return {
       x: x,
       y: y,
       width: width,
       height: height,
       rotation: 0,
-      image: image
+      image: image,
+      name: name
     }
   }
 
@@ -124,6 +125,8 @@
   }
 
   function update (elapsed) {
+    const calculateNfov = frameCount % 2 === 0
+
     player.vx = player.vy = 0
 
     if (Key.isDown(Key.LEFT)) {
@@ -146,6 +149,10 @@
     enemies.forEach(function (enemy) {
       enemy.x += enemy.vx
       enemy.y += enemy.vy
+
+      if (calculateNfov) {
+        enemy.image = assets.enemy
+      }
     })
 
     checkCollision(player, walls)
@@ -165,33 +172,58 @@
         enemy.rotation = 270
       }
     })
+
+    if (calculateNfov) {
+      nfov.detect(player, enemies, function (player, enemy) {
+        enemy.image = assets.enemyVisible
+      })
+    }
   }
 
   function render () {
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
     sprites.forEach(function (sprite) {
-      let centerX = sprite.x + (sprite.width / 2)
-      let centerY = sprite.y + (sprite.height / 2)
+      let center = {
+        x: sprite.x + (sprite.width / 2),
+        y: sprite.y + (sprite.height / 2)
+      }
 
       ctx.save()
       ctx.setTransform(1, 0, 0, 1, 0, 0)
-      ctx.translate(centerX, centerY)
+      ctx.translate(center.x, center.y)
       ctx.rotate(deg2Rad(sprite.rotation))
-      ctx.translate(-centerX, -centerY)
+      ctx.translate(-center.x, -center.y)
       ctx.drawImage(sprite.image, sprite.x, sprite.y)
+
+      // draws the player fov
+      if (sprite.name === 'player') {
+        let angle = deg2Rad(sprite.rotation > 0 ? 360 - sprite.rotation : 0) + nfov.getAngle() / 2
+        ctx.setTransform(1, 0, 0, 1, 0, 0)
+        ctx.beginPath()
+        ctx.moveTo(center.x, center.y)
+        ctx.lineTo(center.x + nfov.getDistance() * Math.cos(angle), center.y - nfov.getDistance() * Math.sin(angle))
+        ctx.arc(center.x, center.y, nfov.getDistance(), -angle, nfov.getAngle() - angle)
+        ctx.lineTo(center.x, center.y)
+        ctx.lineWidth = 1
+        ctx.strokeStyle = 'red'
+        ctx.stroke()
+        ctx.closePath()
+      }
+
       ctx.restore()
     })
   }
 
   function create () {
-    const assets = {
+    assets = {
       player: loadAsset('assets/player.svg'),
       enemy: loadAsset('assets/enemy.svg'),
+      enemyVisible: loadAsset('assets/enemy-visible.svg'),
       wall: loadAsset('assets/brick.svg')
     }
 
-    player = createSprite(0, 0, 24, 24, assets.player)
+    player = createSprite(0, 0, 24, 24, assets.player, 'player')
     player.vx = player.vy = 0
 
     walls = []
@@ -211,11 +243,11 @@
             player.y = (i * 32) + 4
             break
           case 'X':
-            let wall = createSprite(j * 32, i * 32, 32, 32, assets.wall)
+            let wall = createSprite(j * 32, i * 32, 32, 32, assets.wall, 'wall')
             walls.push(wall)
             break
           case 'O':
-            let enemy = createSprite((j * 32 + 4), (i * 32 + 4), 24, 24, assets.enemy)
+            let enemy = createSprite((j * 32 + 4), (i * 32 + 4), 24, 24, assets.enemy, 'enemy')
             configureEnemy(enemy, config.enemy)
             enemies.push(enemy)
             break
@@ -224,12 +256,20 @@
     })
 
     sprites = walls.concat(enemies).concat([player])
+
+    nfov = new NFOV({
+      distance: 100,
+      angle: deg2Rad(90)
+    })
   }
 
   function gameLoop (timestamp) {
     if (lastUpdate) {
+      frameCount++
       update((timestamp - lastUpdate) / 1000)
       render()
+    } else {
+      frameCount = 0
     }
 
     lastUpdate = timestamp
@@ -248,4 +288,4 @@
     create()
     requestAnimationFrame(gameLoop)
   }
-}(window.requestAnimationFrame, window.Key, window.Image))
+}(window.requestAnimationFrame, window.Key, window.Image, window.nfov))

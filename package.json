@@ -4,12 +4,14 @@
   "description": "NPC Field of View",
   "main": "dist/index.js",
   "scripts": {
-    "test": "mocha tests/*.js",
+    "test": "mocha tests/*_test.js",
     "prebuild": "rimraf dist",
     "build": "npm-run-all --parallel build:*",
     "build:main": "babel --out-dir dist src",
     "build:browser": "webpack --output-filename nfov.js",
     "build:browser.min": "webpack --output-filename nfov.min.js -p",
+    "watch:browser": "watch \"npm run build:browser\" src",
+    "watch:browser.min": "watch \"npm run build:browser.min\" src",
     "live-server": "node live-server"
   },
   "repository": {
@@ -38,11 +40,11 @@
     "babel-loader": "6.4.1",
     "babel-preset-es2015": "6.24.0",
     "babel-preset-stage-2": "6.22.0",
-    "chai": "3.5.0",
     "live-server": "^1.2.0",
     "mocha": "3.2.0",
     "npm-run-all": "4.0.2",
     "rimraf": "2.6.1",
+    "watch": "1.0.2",
     "webpack": "2.2.1"
   },
   "babel": {
