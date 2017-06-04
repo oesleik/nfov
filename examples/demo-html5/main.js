@@ -30,7 +30,7 @@
     enemy: {
       speed: 2,
       chance: {
-        spawn: 1,
+        spawn: 5,
         move: 30
       }
     }
@@ -198,12 +198,12 @@
 
       // draws the player fov
       if (sprite.name === 'player') {
-        let angle = deg2Rad(sprite.rotation > 0 ? 360 - sprite.rotation : 0) + nfov.getAngle() / 2
+        let angle = deg2Rad(sprite.rotation > 0 ? 360 - sprite.rotation : 0) + nfov.getAngle(NFOV.RADIANS) / 2
         ctx.setTransform(1, 0, 0, 1, 0, 0)
         ctx.beginPath()
         ctx.moveTo(center.x, center.y)
         ctx.lineTo(center.x + nfov.getDistance() * Math.cos(angle), center.y - nfov.getDistance() * Math.sin(angle))
-        ctx.arc(center.x, center.y, nfov.getDistance(), -angle, nfov.getAngle() - angle)
+        ctx.arc(center.x, center.y, nfov.getDistance(), -angle, nfov.getAngle(NFOV.RADIANS) - angle)
         ctx.lineTo(center.x, center.y)
         ctx.lineWidth = 1
         ctx.strokeStyle = 'red'
@@ -259,7 +259,9 @@
 
     nfov = new NFOV({
       distance: 100,
-      angle: deg2Rad(90)
+      angle: 90,
+      angleUnit: NFOV.DEGREES,
+      orientation: NFOV.CLOCKWISE
     })
   }
 

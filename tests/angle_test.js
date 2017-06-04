@@ -22,7 +22,7 @@ describe('nfov angle', function () {
     const agent = getAgent(100, 100)
     const target = getTarget(50, 75)
 
-    const nfov = new NFOV({ angle: 0 })
+    const nfov = new NFOV({ angle: 0, angleUnit: NFOV.DEGREES, orientation: NFOV.CLOCKWISE })
     nfov.detect(agent, target, callback)
     assert.ok(target.called)
   })
@@ -31,13 +31,13 @@ describe('nfov angle', function () {
     const agent = getAgent(100, 100)
     const target = getTarget(50, 75)
 
-    const nfov = new NFOV({ angle: deg2Rad(360) })
+    const nfov = new NFOV({ angle: 360, angleUnit: NFOV.DEGREES, orientation: NFOV.CLOCKWISE })
     nfov.detect(agent, target, callback)
     assert.ok(target.called)
   })
 
   it('should call when target is on fov', function () {
-    const nfov = new NFOV({ angle: deg2Rad(90) })
+    const nfov = new NFOV({ angle: 90, angleUnit: NFOV.DEGREES, orientation: NFOV.CLOCKWISE })
     const agent = getAgent(100, 100)
     let targets
 
@@ -83,7 +83,7 @@ describe('nfov angle', function () {
   })
 
   it('should not call when target is out of fov', function () {
-    const nfov = new NFOV({ angle: deg2Rad(89) })
+    const nfov = new NFOV({ angle: 89, angleUnit: NFOV.DEGREES, orientation: NFOV.CLOCKWISE })
     const agent = getAgent(100, 100)
     let targets
 

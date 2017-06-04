@@ -1,9 +1,9 @@
 const handler = function handler (nfov, agents, targets, callback) {
   handler.each(nfov, agents, function (_agent) {
-    const agent = handler.normalizeAgent(nfov, _agent)
+    const agent = handler.agent(nfov, _agent)
 
     handler.each(nfov, targets, function (_target) {
-      const target = handler.normalizeTarget(nfov, _target)
+      const target = handler.target(nfov, _target)
 
       if (handler.targetInRange(nfov, agent, target) &&
           handler.targetInFOV(nfov, agent, target) &&
@@ -24,7 +24,12 @@ handler.each = function each (nfov, objs, callback) {
   }
 }
 
-handler.normalizeAgent = function normalizeAgent (nfov, obj) {
+handler.fixPrecision = function fixPrecision (number) {
+  const precision = 10000000000
+  return Math.round(number * precision) / precision
+}
+
+handler.agent = function agent (nfov, obj) {
   const anchor = { x: 0.5, y: 0.5 }
 
   if (typeof obj.anchor === 'object') {
@@ -32,18 +37,26 @@ handler.normalizeAgent = function normalizeAgent (nfov, obj) {
     anchor.y = typeof obj.anchor.y === 'number' ? obj.anchor.y : anchor.y
   }
 
+  let distance = obj.distance == null ? nfov.getDistance() : obj.distance
+  let direction = obj.direction == null ? (obj.rotation == null ? 0 : (obj.rotation * Math.PI) / 180) : obj.direction
+  let maxAngle = obj.maxAngle == null ? nfov.getAngle(nfov.RADIANS) : obj.maxAngle
+
+  if (nfov.getOrientation() === nfov.CLOCKWISE) {
+    direction = Math.PI * 2 - direction
+  }
+
   return {
     origin: {
       x: obj.x + obj.width * anchor.x,
       y: obj.y + obj.height * anchor.y
     },
-    distance: obj.distance == null ? nfov.getDistance() : obj.distance,
-    angle: obj.angle == null ? nfov.getAngle() : obj.angle,
-    direction: obj.direction == null ? (obj.rotation == null ? 0 : (obj.rotation * Math.PI) / 180) : obj.direction
+    distance: distance,
+    direction: direction,
+    maxAngle: maxAngle
   }
 }
 
-handler.normalizeTarget = function normalizeTarget (nfov, obj) {
+handler.target = function target (nfov, obj) {
   const anchor = { x: 0.5, y: 0.5 }
 
   if (typeof obj.anchor === 'object') {
@@ -59,14 +72,27 @@ handler.normalizeTarget = function normalizeTarget (nfov, obj) {
   }
 }
 
-handler.fixPrecision = function fixPrecision (number) {
-  const precision = 10000000000000
-  return Math.round(number * precision) / precision
+handler.angleDiff = function angleDiff (angle1, angle2) {
+  const halfCircle = Math.PI
+  const fullCircle = halfCircle * 2
+
+  let diff = angle1 - angle2
+  diff = diff % fullCircle
+
+  if (diff >= halfCircle) {
+    diff -= fullCircle
+  } else if (diff < -halfCircle) {
+    diff += fullCircle
+  }
+
+  return diff
 }
 
 handler.targetInRange = function targetInRange (nfov, agent, target) {
   if (agent.distance > 0) {
-    const distance = Math.sqrt(Math.pow(agent.origin.x - target.origin.x, 2) + Math.pow(agent.origin.y - target.origin.y, 2))
+    const dx = target.origin.x - agent.origin.x
+    const dy = agent.origin.y - target.origin.y
+    const distance = Math.sqrt(dx * dx + dy * dy)
     return distance <= agent.distance
   } else {
     return true
@@ -77,10 +103,10 @@ handler.targetInFOV = function targetInFOV (nfov, agent, target) {
   const halfCircle = Math.PI
   const fullCircle = halfCircle * 2
 
-  if (agent.angle > 0 && agent.angle < fullCircle) {
-    const angle2Target = Math.atan2(target.origin.y - agent.origin.y, target.origin.x - agent.origin.x)
-    const diff = handler.fixPrecision((agent.direction - angle2Target + fullCircle + halfCircle) % fullCircle - halfCircle)
-    const maxAngle = handler.fixPrecision(agent.angle / 2)
+  if (agent.maxAngle > 0 && agent.maxAngle < fullCircle) {
+    const angle2Target = Math.atan2(agent.origin.y - target.origin.y, target.origin.x - agent.origin.x)
+    const diff = handler.fixPrecision(handler.angleDiff(agent.direction, angle2Target))
+    const maxAngle = handler.fixPrecision(agent.maxAngle / 2)
     return diff <= maxAngle && diff >= -maxAngle
   } else {
     return true
