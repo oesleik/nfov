@@ -21,7 +21,9 @@
     'X                       X',
     'X                       X',
     'XXXXXXXXXXXXXXXXXXXXXXXXX'
-  ]
+  ].map(function (row) {
+    return row.split('')
+  })
 
   const config = {
     player: {
@@ -30,7 +32,7 @@
     enemy: {
       speed: 2,
       chance: {
-        spawn: 5,
+        spawn: 15,
         move: 30
       }
     }
@@ -55,7 +57,7 @@
   }
 
   function chanceRoll (chance) {
-    return chance >= Math.random() * 100
+    return chance > 0 && chance >= Math.random() * 100
   }
 
   function deg2Rad (deg) {
@@ -157,7 +159,7 @@
 
     checkCollision(player, walls)
 
-    checkCollision(enemies, walls, function (enemy) {
+    checkCollision(enemies.filter((enemy) => enemy.vx + enemy.vy !== 0), walls, function (enemy) {
       if (enemy.rotation === 0) {
         enemy.vx = config.enemy.speed * -1
         enemy.rotation = 180
@@ -229,8 +231,8 @@
     walls = []
     enemies = []
 
-    level.forEach(function (line, i) {
-      line.split('').forEach(function (block, j) {
+    level.forEach(function (row, i) {
+      row.forEach(function (block, j) {
         if (block === ' ') {
           if (chanceRoll(config.enemy.chance.spawn)) {
             block = 'O'
@@ -261,7 +263,13 @@
       distance: 100,
       angle: 90,
       angleUnit: NFOV.DEGREES,
-      orientation: NFOV.CLOCKWISE
+      orientation: NFOV.CLOCKWISE,
+      grid: level,
+      tileSize: {
+        width: 32,
+        height: 32
+      },
+      acceptableTiles: [' ', 'P', 'O']
     })
   }
 
