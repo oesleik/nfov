@@ -1,8 +1,8 @@
 const handler = function handler (nfov, agents, targets, callback) {
-  handler.each(nfov, agents, function (_agent) {
+  handler.each(agents, function (_agent) {
     const agent = handler.agent(nfov, _agent)
 
-    handler.each(nfov, targets, function (_target) {
+    handler.each(targets, function (_target) {
       const target = handler.target(nfov, _target)
 
       if (handler.targetInRange(nfov, agent, target) &&
@@ -14,10 +14,10 @@ const handler = function handler (nfov, agents, targets, callback) {
   })
 }
 
-handler.each = function each (nfov, objs, callback) {
+handler.each = function each (objs, callback) {
   if (Array.isArray(objs)) {
     objs.forEach(function (obj) {
-      handler.each(nfov, obj, callback)
+      handler.each(obj, callback)
     })
   } else {
     callback(objs)
@@ -88,6 +88,73 @@ handler.angleDiff = function angleDiff (angle1, angle2) {
   return diff
 }
 
+handler.makeRay = function makeRay (_agent, _target, tileSize) {
+  const agent = {
+    x: _agent.x / tileSize.width,
+    y: _agent.y / tileSize.height
+  }
+
+  const target = {
+    x: _target.x / tileSize.width,
+    y: _target.y / tileSize.height
+  }
+
+  const direction = {
+    x: target.x - agent.x,
+    y: target.y - agent.y
+  }
+
+  const delta = {
+    x: direction.x === 0 ? 0 : Math.abs(1 / direction.x),
+    y: direction.y === 0 ? 0 : Math.abs(1 / direction.y)
+  }
+
+  const over = {
+    x: agent.x - Math.floor(agent.x),
+    y: agent.y - Math.floor(agent.y)
+  }
+
+  const current = {
+    x: direction.x === 0 ? 2 : (direction.x > 0 ? 1 - over.x : over.x) * delta.x,
+    y: direction.y === 0 ? 2 : (direction.y > 0 ? 1 - over.y : over.y) * delta.y
+  }
+
+  const step = {
+    x: direction.x >= 0 ? 1 : -1,
+    y: direction.y >= 0 ? 1 : -1
+  }
+
+  const point = {
+    x: Math.floor(agent.x),
+    y: Math.floor(agent.y)
+  }
+
+  let value = direction.x === 0 && direction.y === 0 ? 2 : 0
+
+  return {
+    next: function next () {
+      if (value > 1) {
+        return false
+      }
+
+      if (current.x <= current.y) {
+        current.x += delta.x
+        value = current.x
+        point.x += step.x
+      } else {
+        current.y += delta.y
+        value = current.y
+        point.y += step.y
+      }
+
+      return {
+        x: point.x,
+        y: point.y
+      }
+    }
+  }
+}
+
 handler.targetInRange = function targetInRange (nfov, agent, target) {
   if (agent.distance > 0) {
     const dx = target.origin.x - agent.origin.x
@@ -114,6 +181,31 @@ handler.targetInFOV = function targetInFOV (nfov, agent, target) {
 }
 
 handler.targetIsVisible = function targetIsVisible (nfov, agent, target) {
+  const grid = nfov.getGrid()
+
+  if (grid != null) {
+    const tileSize = nfov.getTileSize()
+    const acceptableTiles = nfov.getAcceptableTiles()
+
+    const rayCast = handler.makeRay(agent.origin, target.origin, tileSize)
+    let point = rayCast.next()
+
+    while (point) {
+      if (grid[point.y] != null && grid[point.y][point.x] != null) {
+        const tile = grid[point.y][point.x]
+
+        if (acceptableTiles.indexOf(tile) >= 0) {
+          point = rayCast.next()
+        } else {
+          return false
+        }
+      } else {
+        // tile not mapped
+        return false
+      }
+    }
+  }
+
   return true
 }
 
