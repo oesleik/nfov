@@ -1,5 +1,5 @@
-(function (PIXI, requestAnimationFrame, Key) {
-  let renderer, stage, state, player, walls, enemies
+(function (PIXI, requestAnimationFrame, Key, NFOV) {
+  let renderer, stage, state, player, walls, enemies, fov, nfov, frameCount
 
   const level = [
     'XXXXXXXXXXXXXXXXXXXXXXXXX',
@@ -21,7 +21,9 @@
     'X                       X',
     'X                       X',
     'XXXXXXXXXXXXXXXXXXXXXXXXX'
-  ]
+  ].map(function (row) {
+    return row.split('')
+  })
 
   const config = {
     player: {
@@ -30,14 +32,14 @@
     enemy: {
       speed: 2,
       chance: {
-        spawn: 1,
+        spawn: 15,
         move: 30
       }
     }
   }
 
   function chanceRoll (chance) {
-    return chance >= Math.random() * 100
+    return chance > 0 && chance >= Math.random() * 100
   }
 
   function deg2Rad (deg) {
@@ -112,6 +114,9 @@
   }
 
   function play () {
+    // const calculateNfov = frameCount % 2 === 0
+    const calculateNfov = true
+
     player.vx = player.vy = 0
 
     if (Key.isDown(Key.LEFT)) {
@@ -131,9 +136,17 @@
     player.x += player.vx
     player.y += player.vy
 
+    fov.position.x = player.position.x
+    fov.position.y = player.position.y
+    fov.rotation = player.rotation
+
     enemies.children.forEach(function (enemy) {
       enemy.x += enemy.vx
       enemy.y += enemy.vy
+
+      if (calculateNfov) {
+        enemy.setTexture(PIXI.loader.resources.enemy.texture)
+      }
     })
 
     checkCollision(player, walls)
@@ -153,15 +166,23 @@
         enemy.rotation = deg2Rad(270)
       }
     })
+
+    if (calculateNfov) {
+      nfov.detect(player, enemies.children, function (player, enemy) {
+        enemy.setTexture(PIXI.loader.resources.enemyVisible.texture)
+      })
+    }
   }
 
   function gameLoop () {
     state()
     renderer.render(stage)
     requestAnimationFrame(gameLoop)
+    frameCount++
   }
 
   function setup () {
+    frameCount = 0
     stage = new PIXI.Container()
 
     player = new PIXI.Sprite(PIXI.loader.resources.player.texture)
@@ -175,8 +196,8 @@
     enemies = new PIXI.Container()
     stage.addChild(enemies)
 
-    level.forEach(function (line, i) {
-      line.split('').forEach(function (block, j) {
+    level.forEach(function (row, i) {
+      row.forEach(function (block, j) {
         if (block === ' ') {
           if (chanceRoll(config.enemy.chance.spawn)) {
             block = 'O'
@@ -206,6 +227,29 @@
       })
     })
 
+    nfov = new NFOV({
+      distance: 200,
+      angle: deg2Rad(90),
+      angleUnit: NFOV.RADIANS,
+      orientation: NFOV.CLOCKWISE,
+      grid: level,
+      tileSize: {
+        width: 32,
+        height: 32
+      },
+      acceptableTiles: [' ', 'P', 'O']
+    })
+
+    let angle = nfov.getAngle(NFOV.RADIANS) / 2
+    fov = new PIXI.Graphics()
+    fov.position.set(player.position.x, player.position.y)
+    fov.lineStyle(1, 0xFF00000)
+    fov.moveTo(0, 0)
+    fov.lineTo(nfov.getDistance() * Math.cos(angle), -nfov.getDistance() * Math.sin(angle))
+    fov.arc(0, 0, nfov.getDistance(), -angle, nfov.getAngle(NFOV.RADIANS) - angle)
+    fov.lineTo(0, 0)
+    stage.addChild(fov)
+
     state = play
     gameLoop()
   }
@@ -218,7 +262,8 @@
     PIXI.loader
       .add('wall', 'assets/brick.svg')
       .add('enemy', 'assets/enemy.svg')
+      .add('enemyVisible', 'assets/enemy-visible.svg')
       .add('player', 'assets/player.svg')
       .load(setup)
   }
-}(window.PIXI, window.requestAnimationFrame, window.Key))
+}(window.PIXI, window.requestAnimationFrame, window.Key, window.nfov))

@@ -56,7 +56,7 @@ handler.basicObject = function basicObject (nfov, obj) {
     y: 0.5
   }
 
-  // phaser
+  // phaser | pixi
   if (obj.position != null) {
     position.x = obj.position.x
     position.y = obj.position.y
@@ -68,10 +68,8 @@ handler.basicObject = function basicObject (nfov, obj) {
     body.height = obj.body.height
   }
 
-  // phaser
+  // phaser | pixi
   if (obj.anchor != null) {
-    anchor.x = obj.anchor.x
-    anchor.y = obj.anchor.y
     anchor.x = 0
     anchor.y = 0
   }
