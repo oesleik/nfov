@@ -1,4 +1,4 @@
-(function (Phaser) {
+(function (Phaser, NFOV) {
   const level = [
     'XXXXXXXXXXXXXXXXXXXXXXXXX',
     'X      X                X',
@@ -19,7 +19,9 @@
     'X                       X',
     'X                       X',
     'XXXXXXXXXXXXXXXXXXXXXXXXX'
-  ]
+  ].map(function (row) {
+    return row.split('')
+  })
 
   const config = {
     player: {
@@ -28,14 +30,14 @@
     enemy: {
       speed: 100,
       chance: {
-        spawn: 1,
+        spawn: 15,
         move: 30
       }
     }
   }
 
   function mainState (game, level, config) {
-    let cursors, player, walls, enemies
+    let cursors, player, walls, enemies, fov, nfov, frameCount
 
     function createEnemy (game, x, y, config) {
       let enemy = game.add.sprite(x, y, 'enemy')
@@ -65,10 +67,12 @@
       preload () {
         game.load.image('wall', 'assets/brick.svg', 32, 32)
         game.load.image('enemy', 'assets/enemy.svg', 24, 24)
+        game.load.image('enemyVisible', 'assets/enemy-visible.svg')
         game.load.image('player', 'assets/player.svg', 24, 24)
       },
 
       create () {
+        frameCount = 0
         game.stage.backgroundColor = '#999'
 
         game.physics.startSystem(Phaser.Physics.ARCADE)
@@ -81,8 +85,8 @@
         player.body.collideWorldBounds = true
         player.anchor.setTo(0.5, 0.5)
 
-        level.forEach(function (line, i) {
-          line.split('').forEach(function (block, j) {
+        level.forEach(function (row, i) {
+          row.forEach(function (block, j) {
             if (block === ' ') {
               if (Phaser.Utils.chanceRoll(config.enemy.chance.spawn)) {
                 block = 'O'
@@ -106,10 +110,32 @@
           })
         })
 
+        nfov = new NFOV({
+          distance: 200,
+          angle: 90,
+          angleUnit: NFOV.DEGREES,
+          grid: level,
+          tileSize: {
+            width: 32,
+            height: 32
+          },
+          acceptableTiles: [' ', 'P', 'O']
+        })
+
+        let angle = nfov.getAngle(NFOV.RADIANS) / 2
+        fov = game.add.graphics(player.position.x, player.position.y)
+        fov.lineStyle(1, 0xFF00000)
+        fov.lineTo(nfov.getDistance() * Math.cos(angle), -nfov.getDistance() * Math.sin(angle))
+        fov.arc(0, 0, nfov.getDistance(), -angle, nfov.getAngle(NFOV.RADIANS) - angle)
+        fov.lineTo(0, 0)
+
         cursors = game.input.keyboard.createCursorKeys()
       },
 
       update () {
+        // const calculateNfov = frameCount % 2 === 0
+        const calculateNfov = true
+
         player.body.velocity.x = 0
         player.body.velocity.y = 0
 
@@ -144,6 +170,22 @@
             enemy.angle = 270
           }
         })
+
+        fov.position.x = player.position.x
+        fov.position.y = player.position.y
+        fov.angle = player.angle
+
+        if (calculateNfov) {
+          enemies.forEach(function (enemy) {
+            enemy.loadTexture('enemy', 0)
+          })
+
+          nfov.detect(player, enemies.children, function (player, enemy) {
+            enemy.loadTexture('enemyVisible', 0)
+          })
+        }
+
+        frameCount++
       }
     }
   }
@@ -151,4 +193,4 @@
   const game = new Phaser.Game(level[0].length * 32, level.length * 32)
   game.state.add('main', mainState(game, level, config))
   game.state.start('main')
-}(window.Phaser))
+}(window.Phaser, window.nfov))

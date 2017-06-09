@@ -127,7 +127,8 @@
   }
 
   function update (elapsed) {
-    const calculateNfov = frameCount % 2 === 0
+    // const calculateNfov = frameCount % 2 === 0
+    const calculateNfov = true
 
     player.vx = player.vy = 0
 
@@ -260,7 +261,7 @@
     sprites = walls.concat(enemies).concat([player])
 
     nfov = new NFOV({
-      distance: 100,
+      distance: 200,
       angle: 90,
       angleUnit: NFOV.DEGREES,
       orientation: NFOV.CLOCKWISE,
