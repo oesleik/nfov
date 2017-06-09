@@ -1,8 +1,8 @@
 const handler = function handler (nfov, agents, targets, callback) {
-  handler.each(agents, function (_agent) {
+  handler.each(agents, function eachAgent (_agent) {
     const agent = handler.agent(nfov, _agent)
 
-    handler.each(targets, function (_target) {
+    handler.each(targets, function eachTarget (_target) {
       const target = handler.target(nfov, _target)
 
       if (handler.targetInRange(nfov, agent, target) &&
@@ -29,47 +29,93 @@ handler.fixPrecision = function fixPrecision (number) {
   return Math.round(number * precision) / precision
 }
 
-handler.agent = function agent (nfov, obj) {
-  const anchor = { x: 0.5, y: 0.5 }
+handler.parseAngle = function parseAngle (angle, isDegrees, isClockwise) {
+  angle = isDegrees === true ? angle * Math.PI / 180 : angle
+  angle = angle >= 0 ? angle : angle + Math.PI * 2
+  angle = isClockwise === true && angle > 0 ? Math.PI * 2 - angle : angle
+  return angle
+}
 
-  if (typeof obj.anchor === 'object') {
-    anchor.x = typeof obj.anchor.x === 'number' ? obj.anchor.x : anchor.x
-    anchor.y = typeof obj.anchor.y === 'number' ? obj.anchor.y : anchor.y
+handler.basicObject = function basicObject (nfov, obj) {
+  if (obj.x == null && obj.position == null) {
+    throw new Error('Object position not found')
   }
 
-  let distance = obj.distance == null ? nfov.getDistance() : obj.distance
-  let direction = obj.direction == null ? (obj.rotation == null ? 0 : (obj.rotation * Math.PI) / 180) : obj.direction
-  let maxAngle = obj.maxAngle == null ? nfov.getAngle(nfov.RADIANS) : obj.maxAngle
+  const position = {
+    x: obj.x,
+    y: obj.y
+  }
 
-  if (nfov.getOrientation() === nfov.CLOCKWISE) {
-    direction = Math.PI * 2 - direction
+  const body = {
+    width: obj.width,
+    height: obj.height
+  }
+
+  const anchor = {
+    x: 0.5,
+    y: 0.5
+  }
+
+  // phaser
+  if (obj.position != null) {
+    position.x = obj.position.x
+    position.y = obj.position.y
+  }
+
+  // phaser
+  if (obj.body != null && obj.body.width != null) {
+    body.width = obj.body.width
+    body.height = obj.body.height
+  }
+
+  // phaser
+  if (obj.anchor != null) {
+    anchor.x = obj.anchor.x
+    anchor.y = obj.anchor.y
+    anchor.x = 0
+    anchor.y = 0
   }
 
   return {
     origin: {
-      x: obj.x + obj.width * anchor.x,
-      y: obj.y + obj.height * anchor.y
-    },
-    distance: distance,
-    direction: direction,
-    maxAngle: maxAngle
+      x: position.x + body.width * anchor.x,
+      y: position.y + body.height * anchor.y
+    }
   }
 }
 
+handler.agent = function agent (nfov, obj) {
+  const agentObj = handler.basicObject(nfov, obj)
+
+  agentObj.distance = nfov.getDistance()
+  agentObj.direction = 0
+  agentObj.maxAngle = nfov.getAngle(nfov.RADIANS)
+
+  if (obj.distance != null) {
+    agentObj.distance = obj.distance
+  }
+
+  if (obj.direction != null) {
+    agentObj.direction = handler.parseAngle(obj.direction, nfov.getAngleUnit() === nfov.DEGREES, nfov.getOrientation() === nfov.CLOCKWISE)
+  } else if (obj.body != null && obj.body.rotation != null) {
+    // phaser
+    agentObj.direction = handler.parseAngle(obj.body.rotation, true, true)
+  } else if (obj.body != null && obj.body.angle != null) {
+    // phaser
+    agentObj.direction = handler.parseAngle(obj.body.angle, false, true)
+  } else if (obj.rotation != null) {
+    agentObj.direction = handler.parseAngle(obj.rotation, nfov.getAngleUnit() === nfov.DEGREES, nfov.getOrientation() === nfov.CLOCKWISE)
+  }
+
+  if (obj.maxAngle != null) {
+    agentObj.maxAngle = nfov.getAngleUnit() === nfov.DEGREES ? obj.maxAngle * Math.PI / 180 : obj.maxAngle
+  }
+
+  return agentObj
+}
+
 handler.target = function target (nfov, obj) {
-  const anchor = { x: 0.5, y: 0.5 }
-
-  if (typeof obj.anchor === 'object') {
-    anchor.x = typeof obj.anchor.x === 'number' ? obj.anchor.x : anchor.x
-    anchor.y = typeof obj.anchor.y === 'number' ? obj.anchor.y : anchor.y
-  }
-
-  return {
-    origin: {
-      x: obj.x + obj.width * anchor.x,
-      y: obj.y + obj.height * anchor.y
-    }
-  }
+  return handler.basicObject(nfov, obj)
 }
 
 handler.angleDiff = function angleDiff (angle1, angle2) {
@@ -129,21 +175,17 @@ handler.makeRay = function makeRay (_agent, _target, tileSize) {
     y: Math.floor(agent.y)
   }
 
-  let value = direction.x === 0 && direction.y === 0 ? 2 : 0
-
   return {
     next: function next () {
-      if (value > 1) {
+      if (current.x > 1 && current.y > 1) {
         return false
       }
 
       if (current.x <= current.y) {
         current.x += delta.x
-        value = current.x
         point.x += step.x
       } else {
         current.y += delta.y
-        value = current.y
         point.y += step.y
       }
 
