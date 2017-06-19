@@ -32,15 +32,15 @@
     "url": "https://github.com/oesleik/nfov/issues"
   },
   "homepage": "https://github.com/oesleik/nfov#readme",
-  "dependencies": {
-    "extend": "3.0.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "babel-cli": "6.24.0",
     "babel-loader": "6.4.1",
     "babel-preset-es2015": "6.24.0",
     "babel-preset-stage-2": "6.22.0",
+    "benchmark": "2.1.4",
     "live-server": "^1.2.0",
+    "microtime": "2.1.5",
     "mocha": "3.2.0",
     "npm-run-all": "4.0.2",
     "rimraf": "2.6.1",
