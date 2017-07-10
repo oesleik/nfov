@@ -5,8 +5,8 @@ const handler = function handler (nfov, agents, targets, callback) {
     handler.each(targets, function eachTarget (_target) {
       const target = handler.target(nfov, _target)
 
-      if (handler.targetInRange(nfov, agent, target) &&
-          handler.targetInFOV(nfov, agent, target) &&
+      if (handler.targetInRadius(nfov, agent, target) &&
+          handler.targetInAngle(nfov, agent, target) &&
           handler.targetIsVisible(nfov, agent, target)) {
         callback(_agent, _target)
       }
@@ -96,7 +96,7 @@ handler.agent = function agent (nfov, obj) {
   if (obj.direction != null) {
     agentObj.direction = handler.parseAngle(obj.direction, nfov.getAngleUnit() === nfov.DEGREES, nfov.getOrientation() === nfov.CLOCKWISE)
   } else if (obj.body != null && obj.body.rotation != null) {
-    // phaser
+    // phaser | pixi
     agentObj.direction = handler.parseAngle(obj.body.rotation, true, true)
   } else if (obj.body != null && obj.body.angle != null) {
     // phaser
@@ -195,7 +195,7 @@ handler.makeRay = function makeRay (_agent, _target, tileSize) {
   }
 }
 
-handler.targetInRange = function targetInRange (nfov, agent, target) {
+handler.targetInRadius = function targetInRadius (nfov, agent, target) {
   if (agent.distance > 0) {
     const dx = target.origin.x - agent.origin.x
     const dy = agent.origin.y - target.origin.y
@@ -206,15 +206,26 @@ handler.targetInRange = function targetInRange (nfov, agent, target) {
   }
 }
 
-handler.targetInFOV = function targetInFOV (nfov, agent, target) {
-  const halfCircle = Math.PI
-  const fullCircle = halfCircle * 2
+handler.targetInAngle = function targetInAngle (nfov, agent, target) {
+  if (agent.maxAngle > 0 && agent.maxAngle < Math.PI * 2) {
+    const vAgent = {
+      x: Math.cos(agent.direction),
+      y: Math.sin(agent.direction)
+    }
 
-  if (agent.maxAngle > 0 && agent.maxAngle < fullCircle) {
-    const angle2Target = Math.atan2(agent.origin.y - target.origin.y, target.origin.x - agent.origin.x)
-    const diff = handler.fixPrecision(handler.angleDiff(agent.direction, angle2Target))
+    const vTarget = {
+      x: target.origin.x - agent.origin.x,
+      y: agent.origin.y - target.origin.y
+    }
+
+    const magnitude = Math.sqrt(vTarget.x * vTarget.x + vTarget.y * vTarget.y)
+    vTarget.x /= magnitude
+    vTarget.y /= magnitude
+
+    const cdot = vAgent.x * vTarget.x + vAgent.y * vTarget.y
+    const diff = handler.fixPrecision(Math.acos(Math.max(-1, Math.min(1, cdot))))
     const maxAngle = handler.fixPrecision(agent.maxAngle / 2)
-    return diff <= maxAngle && diff >= -maxAngle
+    return diff <= maxAngle
   } else {
     return true
   }
