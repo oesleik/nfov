@@ -90,7 +90,7 @@ var handler = function handler(nfov, agents, targets, callback) {
     handler.each(targets, function eachTarget(_target) {
       var target = handler.target(nfov, _target);
 
-      if (handler.targetInRange(nfov, agent, target) && handler.targetInFOV(nfov, agent, target) && handler.targetIsVisible(nfov, agent, target)) {
+      if (handler.targetInRadius(nfov, agent, target) && handler.targetInAngle(nfov, agent, target) && handler.targetIsVisible(nfov, agent, target)) {
         callback(_agent, _target);
       }
     });
@@ -178,14 +178,12 @@ handler.agent = function agent(nfov, obj) {
 
   if (obj.direction != null) {
     agentObj.direction = handler.parseAngle(obj.direction, nfov.getAngleUnit() === nfov.DEGREES, nfov.getOrientation() === nfov.CLOCKWISE);
-  } else if (obj.body != null && obj.body.rotation != null) {
-    // phaser
-    agentObj.direction = handler.parseAngle(obj.body.rotation, true, true);
   } else if (obj.body != null && obj.body.angle != null) {
     // phaser
     agentObj.direction = handler.parseAngle(obj.body.angle, false, true);
   } else if (obj.rotation != null) {
-    agentObj.direction = handler.parseAngle(obj.rotation, nfov.getAngleUnit() === nfov.DEGREES, nfov.getOrientation() === nfov.CLOCKWISE);
+    // pixi
+    agentObj.direction = handler.parseAngle(obj.rotation, false, true);
   }
 
   if (obj.maxAngle != null) {
@@ -278,7 +276,7 @@ handler.makeRay = function makeRay(_agent, _target, tileSize) {
   };
 };
 
-handler.targetInRange = function targetInRange(nfov, agent, target) {
+handler.targetInRadius = function targetInRadius(nfov, agent, target) {
   if (agent.distance > 0) {
     var dx = target.origin.x - agent.origin.x;
     var dy = agent.origin.y - target.origin.y;
@@ -289,15 +287,26 @@ handler.targetInRange = function targetInRange(nfov, agent, target) {
   }
 };
 
-handler.targetInFOV = function targetInFOV(nfov, agent, target) {
-  var halfCircle = Math.PI;
-  var fullCircle = halfCircle * 2;
+handler.targetInAngle = function targetInAngle(nfov, agent, target) {
+  if (agent.maxAngle > 0 && agent.maxAngle < Math.PI * 2) {
+    var vAgent = {
+      x: Math.cos(agent.direction),
+      y: Math.sin(agent.direction)
+    };
 
-  if (agent.maxAngle > 0 && agent.maxAngle < fullCircle) {
-    var angle2Target = Math.atan2(agent.origin.y - target.origin.y, target.origin.x - agent.origin.x);
-    var diff = handler.fixPrecision(handler.angleDiff(agent.direction, angle2Target));
+    var vTarget = {
+      x: target.origin.x - agent.origin.x,
+      y: agent.origin.y - target.origin.y
+    };
+
+    var magnitude = Math.sqrt(vTarget.x * vTarget.x + vTarget.y * vTarget.y);
+    vTarget.x /= magnitude;
+    vTarget.y /= magnitude;
+
+    var cdot = vAgent.x * vTarget.x + vAgent.y * vTarget.y;
+    var diff = handler.fixPrecision(Math.acos(Math.max(-1, Math.min(1, cdot))));
     var maxAngle = handler.fixPrecision(agent.maxAngle / 2);
-    return diff <= maxAngle && diff >= -maxAngle;
+    return diff <= maxAngle;
   } else {
     return true;
   }
