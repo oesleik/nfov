@@ -14,13 +14,13 @@ Faça o download da última versão em [https://github.com/oesleik/nfov](https:/
 Primeiro é necessário criar uma instância com as configurações desejadas:
 
 ```javascript
-var nfov = new NFOV({ ... })
+var nfovInstance = new nfov({ ... })
 ```
 
 Com a instância criada, basta chamar o método `detect` dentro do loop principal do jogo:
 
 ```javascript
-nfov.detect(agent, targets, function (agent, target) {
+nfovInstance.detect(agent, targets, function (agent, target) {
   // do something...
 })
 ```
