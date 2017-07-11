@@ -95,14 +95,12 @@ handler.agent = function agent (nfov, obj) {
 
   if (obj.direction != null) {
     agentObj.direction = handler.parseAngle(obj.direction, nfov.getAngleUnit() === nfov.DEGREES, nfov.getOrientation() === nfov.CLOCKWISE)
-  } else if (obj.body != null && obj.body.rotation != null) {
-    // phaser | pixi
-    agentObj.direction = handler.parseAngle(obj.body.rotation, true, true)
   } else if (obj.body != null && obj.body.angle != null) {
     // phaser
     agentObj.direction = handler.parseAngle(obj.body.angle, false, true)
   } else if (obj.rotation != null) {
-    agentObj.direction = handler.parseAngle(obj.rotation, nfov.getAngleUnit() === nfov.DEGREES, nfov.getOrientation() === nfov.CLOCKWISE)
+    // pixi
+    agentObj.direction = handler.parseAngle(obj.rotation, false, true)
   }
 
   if (obj.maxAngle != null) {

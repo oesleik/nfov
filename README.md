@@ -156,9 +156,6 @@ Distância máxima do raio de visão do agente. Caso não informado, é utilizad
 `direction` Opcional default `0`<br />
 Direção em que o agente está apontando. O valor `0` indica o lado direito, isto é, x positivo e y `0`.
 
-`rotation` Opcional<br />
-Sobrescreve a propriedade `direction`.
-
 ## Objeto `target`
 
 Sprites utilizadas pelo *Phaser* ou *Pixi* são suportadas sem necessidade de configurações adicionais.
